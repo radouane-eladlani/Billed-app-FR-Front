@@ -171,9 +171,8 @@ describe("Given I am connected as an employee", () => {
 });
 
 ///////////////////////////////////////////////////////////////////////////
-///////////////////////test d'intégration /////////////////////////////////
+/////////////////////// test d'intégration /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////
-
 
 // test intégration Post
 //utilisateur connecté en tant qu'employé et soumet le formulaire
@@ -249,5 +248,73 @@ describe("Given I am a user connected as Employee", () => {
       expect(handleSubmit).toHaveBeenCalled();
       expect(newBill.updateBill).toHaveBeenCalled();
     });
+  });
+
+
+// Test d'erreur 404
+test("fetches error from an API and fails with 404 error", async () => {
+  // Espionner la méthode 'bills' du magasin (store)
+  jest.spyOn(store, "bills");
+
+  // Simuler le stockage local (localStorage)
+  Object.defineProperty(window, "localStorage", { value: localStorageMock });
+  window.localStorage.setItem("user", JSON.stringify({ type: "Employee" }));
+
+  // Créer un élément racine et configurer le routeur
+  const root = document.createElement("div");
+  root.setAttribute("id", "root");
+  document.body.appendChild(root);
+  router();
+
+  // Créer une nouvelle instance de NewBill
+  const newBill = new NewBill({ document, onNavigate, store: store, localStorage: window.localStorage });
+
+  // Espionner la méthode 'update' de 'bills' pour simuler une erreur 404
+  store.bills.mockImplementationOnce(() => {
+    return {
+      update: () => {
+        return Promise.reject(new Error("Erreur 404"));
+      },
+    };
+  });
+
+  // Déclencher la navigation vers la route NewBill
+  window.onNavigate(ROUTES_PATH.NewBill);
+  await new Promise(process.nextTick);
+
+  // Trouver l'élément de formulaire et configurer un gestionnaire d'événement de soumission
+  const formBill = screen.getByTestId("form-new-bill");
+  const handleSubmit = jest.fn((e) => newBill.handleSubmit(e));
+  formBill.addEventListener("submit", handleSubmit);
+  // Déclencher la soumission du formulaire
+  fireEvent.submit(formBill);
+});
+
+  // Test d'erreur 500
+  test("fetches error from an API and fails with 500 error", async () => {
+    jest.spyOn(store, "bills");
+    Object.defineProperty(window, "localStorage", { value: localStorageMock });
+    window.localStorage.setItem("user", JSON.stringify({ type: "Employee" }));
+    const root = document.createElement("div");
+    root.setAttribute("id", "root");
+    document.body.appendChild(root);
+    router();
+
+    const newBill = new NewBill({ document, onNavigate, store: store, localStorage: window.localStorage });
+
+    store.bills.mockImplementationOnce(() => {
+      return {
+        update: () => {
+          return Promise.reject(new Error("Erreur 500"));
+        },
+      };
+    });
+
+    window.onNavigate(ROUTES_PATH.NewBill);
+    await new Promise(process.nextTick);
+    const formBill = screen.getByTestId("form-new-bill");
+    const handleSubmit = jest.fn((e) => newBill.handleSubmit(e));
+    formBill.addEventListener("submit", handleSubmit);
+    fireEvent.submit(formBill);
   });
 });
